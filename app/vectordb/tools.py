@@ -2,12 +2,41 @@ import os
 from llama_index.core.text_splitter import TokenTextSplitter, SentenceSplitter
 from llama_index.core.schema import Document
 from llama_index.core.readers.download import download_loader
+from llama_index.core.node_parser import SentenceWindowNodeParser
+from llama_index.core.extractors import (
+    SummaryExtractor,
+    QuestionsAnsweredExtractor,
+    TitleExtractor,
+    KeywordExtractor,
+    BaseExtractor,
+)
+from llama_index.core.schema import MetadataMode
+from llama_index.core.ingestion import IngestionPipeline
+
 from modules.loaders import LOADERS
 import yake
 import re
 import time
 
 from app.config import EMBEDDINGS_PATH
+
+def build_pipeline(llm):
+
+    transformations = [
+        SentenceWindowNodeParser.from_defaults(
+            window_size=3,
+            window_metadata_key="window",
+            original_text_metadata_key="original_text",
+        ),
+        KeywordExtractor(
+            llm=llm, keywords=10
+        ),
+        SummaryExtractor(
+            llm=llm, metadata_mode=MetadataMode.EMBED, num_workers=8
+        ),
+    ]
+
+    return IngestionPipeline(transformations=transformations)
 
 def findVectorDB(project):
     if project.model.vectorstore == "redis":
@@ -23,13 +52,22 @@ def findVectorDB(project):
         raise Exception("Invalid vectorDB type.")
 
 
-def IndexDocuments(project, documents, splitter="sentence", chunks=256):
+def IndexDocuments(project, documents, splitter="sentence", chunks=256, llm=None):
     if splitter == "sentence":
         splitter_o = TokenTextSplitter(
             separator=" ", chunk_size=chunks, chunk_overlap=30)
     elif splitter == "token":
         splitter_o = SentenceSplitter(
             separator=" ", paragraph_separator="\n", chunk_size=chunks, chunk_overlap=30)
+    elif splitter == "windows":
+        
+        pipeline = build_pipeline(llm)
+
+
+        nodes = pipeline.run(documents)
+        project.vector.index.insert_nodes(nodes)
+        return len(nodes)
+
 
     for document in documents:
         text_chunks = splitter_o.split_text(document.text)
@@ -44,6 +82,7 @@ def IndexDocuments(project, documents, splitter="sentence", chunks=256):
 
 
 def ExtractKeywordsForMetadata(documents):
+    
     max_ngram_size = 4
     numOfKeywords = 15
     kw_extractor = yake.KeywordExtractor(n=max_ngram_size, top=numOfKeywords)

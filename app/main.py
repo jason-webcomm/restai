@@ -47,6 +47,8 @@ from app.config import (
 from app.tools import get_logger
 from app.vectordb.tools import FindFileLoader, IndexDocuments, ExtractKeywordsForMetadata
 import sentry_sdk
+import nest_asyncio
+nest_asyncio.apply()
 
 
 logging.basicConfig(level=LOG_LEVEL)
@@ -684,7 +686,7 @@ async def get_embedding(projectName: str, source: str,
         raise HTTPException(
             status_code=400, detail='{"error": "Only available for RAG projects."}')
 
-    docs = project.vector.find_source(base64.b64decode(source).decode('utf-8'))
+    docs = project.vector.find_source(urllib.parse.unquote(base64.b64decode(source).decode('utf-8')))
 
     if (len(docs['ids']) == 0):
         return {"ids": []}
@@ -729,8 +731,9 @@ async def ingest_text(projectName: str, ingest: TextIngestModel,
 
         # for document in documents:
         #    document.text = document.text.decode('utf-8')
+        model = brain.getLLM(project.model.llm, db)
 
-        nchunks = IndexDocuments(project, documents, ingest.splitter, ingest.chunks)
+        nchunks = IndexDocuments(project, documents, ingest.splitter, ingest.chunks, model.llm)
         project.vector.save()
 
         return {"source": ingest.source, "documents": len(documents), "chunks": nchunks}
@@ -760,8 +763,9 @@ async def ingest_url(projectName: str, ingest: URLIngestModel,
 
         documents = loader.load_data(urls=[ingest.url])
         documents = ExtractKeywordsForMetadata(documents)
+        model = brain.getLLM(project.model.llm, db)
 
-        nchunks = IndexDocuments(project, documents, ingest.splitter, ingest.chunks)
+        nchunks = IndexDocuments(project, documents, ingest.splitter, ingest.chunks, model.llm)
         project.vector.save()
 
         return {"source": ingest.url, "documents": len(documents), "chunks": nchunks}
@@ -804,7 +808,7 @@ async def ingest_file(
 
         loader = FindFileLoader(ext, opts)
         documents = loader.load_data(file=Path(temp.name))
-
+        model = brain.getLLM(project.model.llm, db)
         for document in documents:
             if "filename" in document.metadata:
                 del document.metadata["filename"]
@@ -812,7 +816,7 @@ async def ingest_file(
 
         documents = ExtractKeywordsForMetadata(documents)
 
-        nchunks = IndexDocuments(project, documents, splitter, chunks)
+        nchunks = IndexDocuments(project, documents, splitter, chunks, model.llm)
         project.vector.save()
 
         return {
@@ -857,7 +861,7 @@ async def delete_embedding(
         raise HTTPException(
             status_code=400, detail='{"error": "Only available for RAG projects."}')
 
-    ids = project.vector.delete_source(base64.b64decode(source).decode('utf-8'))
+    ids = project.vector.delete_source(urllib.parse.unquote(base64.b64decode(source).decode('utf-8')))
 
     return {"deleted": len(ids)}
 
