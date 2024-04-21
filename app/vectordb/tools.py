@@ -59,7 +59,7 @@ def IndexDocuments(project, documents, splitter="sentence", chunks=256, llm=None
     elif splitter == "token":
         splitter_o = SentenceSplitter(
             separator=" ", paragraph_separator="\n", chunk_size=chunks, chunk_overlap=30)
-    elif splitter == "windows":
+    elif splitter == "pipeline":
         
         pipeline = build_pipeline(llm)
 
