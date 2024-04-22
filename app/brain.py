@@ -4,7 +4,7 @@ from llama_index.core.response_synthesizers import get_response_synthesizer
 from llama_index.embeddings.langchain import LangchainEmbedding
 from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.core.query_engine import RetrieverQueryEngine
-from llama_index.core.postprocessor import SimilarityPostprocessor
+from llama_index.core.postprocessor import SimilarityPostprocessor, MetadataReplacementPostProcessor
 from llama_index.core.prompts import PromptTemplate
 from llama_index.core.chat_engine import CondensePlusContextChatEngine, ContextChatEngine
 from llama_index.core.indices.struct_store.sql_query import NLSQLTableQueryEngine
@@ -141,7 +141,8 @@ class Brain:
         )
 
         postprocessors = []
-
+        postprocessors.append(MetadataReplacementPostProcessor(target_metadata_key="window"))
+        
         if project.model.colbert_rerank:
             postprocessors.append(ColbertRerank(
                 top_n=k,
@@ -156,8 +157,9 @@ class Brain:
                 top_n=k,
                 llm=model.llm,
             ))
-            
+        
         postprocessors.append(SimilarityPostprocessor(similarity_cutoff=threshold))
+
 
         chat_engine = ContextChatEngine.from_defaults(
             retriever=retriever,
@@ -253,6 +255,8 @@ class Brain:
 
         postprocessors = []
 
+        postprocessors.append(MetadataReplacementPostProcessor(target_metadata_key="window"))
+
         if questionModel.colbert_rerank or project.model.colbert_rerank:
             postprocessors.append(ColbertRerank(
                 top_n=k,
@@ -269,6 +273,7 @@ class Brain:
             ))
             
         postprocessors.append(SimilarityPostprocessor(similarity_cutoff=threshold))
+        
 
         query_engine = RetrieverQueryEngine(
             retriever=retriever,

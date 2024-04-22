@@ -63,9 +63,9 @@ def IndexDocuments(project, documents, splitter="sentence", chunks=256, llm=None
         
         pipeline = build_pipeline(llm)
 
-
-        nodes = pipeline.run(documents)
+        nodes = pipeline.run(documents=documents)
         project.vector.index.insert_nodes(nodes)
+
         return len(nodes)
 
 
