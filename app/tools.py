@@ -15,6 +15,9 @@ DEFAULT_LLMS = {
     "bakllava_7b": ("OllamaMultiModal2", {"model": "bakllava", "temperature": 0.0001, "keep_alive": 0}, "private", "https://ollama.com/library/bakllava", "vision"),
     "mixtral_8x7b": ("Ollama", {"model": "mixtral", "temperature": 0.0001, "keep_alive": 0}, "private", "https://ollama.com/library/mixtral", "chat"),
     "llama2_70b": ("Ollama", {"model": "llama2:70b-chat", "temperature": 0.0001, "keep_alive": 0}, "private", "https://ollama.com/library/llama2", "chat"),
+    "llama3_8b": ("Ollama", {"model": "llama3:8b-instruct-q8_0", "temperature": 0.0001, "keep_alive": 0}, "private", "https://ollama.com/library/llama3", "chat"),
+    "llama3_70b": ("Ollama", {"model": "llama3:70b-instruct-q4_K_M", "temperature": 0.0001, "keep_alive": 0}, "private", "https://ollama.com/library/llama3", "chat"),
+    "breeze_7b": ("OpenAILike", {"model": "gpt-3.5-turbo", "api_base":"https://127.0.0.1/breeze/v1", "temperature": 0.0001, "keep_alive": 0}, "private", "https://huggingface.co/MediaTek-Research/Breeze-7B-Instruct-v1_0", "chat"),
 }
 
 
@@ -37,6 +40,10 @@ def getLLMClass(llm_classname):
     elif llm_classname == "LiteLLM":
         from llama_index.llms.litellm import LiteLLM
         return LiteLLM
+    elif llm_classname == "OpenAILike":
+        from llama_index.llms.openai_like import OpenAILike
+        return OpenAILike
+    
     else:
         raise Exception("Invalid LLM class name.")
 
