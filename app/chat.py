@@ -13,7 +13,7 @@ class Chat:
         else:
             self.id = model.id
 
-        self.history = ChatMemoryBuffer.from_defaults(token_limit=3900)
+        self.history = ChatMemoryBuffer.from_defaults(token_limit=32000)
 
         self.created = datetime.datetime.now()
 
